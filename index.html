@@ -14,6 +14,11 @@
   #bgmBtn { background:#1a1a2e; color:#ffce6a; border:1px solid #665; border-radius:6px;
             padding:4px 10px; cursor:pointer; font-size:12px; }
   #bgmBtn:hover { background:#2a2a4e; }
+  /* v17: オンラインランキング */
+  #btnRank, #rankPage { background:#1a2a1e; color:#9fe6b0; border:1px solid #4a7a58; border-radius:6px;
+        padding:4px 10px; cursor:pointer; font-size:12px; font-family:inherit; text-decoration:none; }
+  #btnRank:hover, #rankPage:hover { background:#24402c; }
+  #btnRank:disabled { opacity:.7; cursor:default; }
   #bgmSt { color:#7a9; }
   /* ---- スマホ用タッチパッド ---- */
   html,body{ overscroll-behavior:none; }
@@ -52,6 +57,8 @@
 <div id="bar">
   <span>←→ 回転 / ↑ 前進 / ↓ 後退 / Space 決定 / M マップ / J じゅもん / N 音</span>
   <button id="bgmBtn">🎵 音楽読込（Suno）</button><span id="bgmSt"></span>
+  <button id="btnRank">🏆 ランキングに登録</button>
+  <a id="rankPage" href="https://helmetto2-prog.github.io/ranking-hiroba/" target="_blank" rel="noopener">🌍 広場</a>
   <input type="file" id="bgmFile" accept="audio/*" multiple style="display:none">
 </div>
 <div id="pad">
@@ -1773,6 +1780,43 @@ function loopFn(t){
   render();
   requestAnimationFrame(loopFn);
 }
+/* ==== v17: オンラインランキング（ゲームランキング台帳GAS API・ランキング広場と共通） ==== */
+const RANK_API='https://script.google.com/macros/s/AKfycbz3yJMoui8-HX0iec4dLgW-Wk2nwBxa8t86CmGiuU9-PqqjG8PVb6emUodSweBZfID0Mw/exec';
+const RANK_GAME='エメラルドの迷宮';
+function rankName(){
+  let n=''; try{ n=localStorage.getItem('zunda_rank_name')||''; }catch(e){}
+  if(!n){
+    n=(prompt('ランキングに のせる名前（12文字まで）','')||'').slice(0,12).trim();
+    if(n){ try{ localStorage.setItem('zunda_rank_name',n); }catch(e){} }
+  }
+  return n;
+}
+// スコア＝到達最深階×1000 ＋ エメラルド討伐×5000（永続記録RECKEYから算出＝いつ押しても最高記録が送られる）
+function rankScore(){
+  const r=loadRec();
+  const floor=r.bestFloor||0, clears=r.clears||0, steps=r.bestSteps||0;
+  return { score: floor*1000 + clears*5000, floor, clears, steps };
+}
+async function submitRank(btn){
+  const s=rankScore();
+  if(!s.floor && !s.clears){ btn.textContent='まず迷宮へ潜ろう'; setTimeout(()=>{btn.textContent='🏆 ランキングに登録';},1800); return; }
+  const n=rankName(); if(!n) return;
+  btn.disabled=true; btn.textContent='送信中…';
+  try{
+    const fd=new URLSearchParams();
+    fd.append('action','submit'); fd.append('game',RANK_GAME);
+    fd.append('name',n); fd.append('score',String(s.score));
+    fd.append('extra','最深B'+s.floor+'F・討伐'+s.clears+'回'+(s.steps?('・最速'+s.steps+'歩'):''));
+    const res=await fetch(RANK_API,{method:'POST',body:fd});
+    const d=await res.json();
+    if(!d.ok) throw 0;
+    btn.textContent='✅ 登録完了！ 現在 '+d.rank+'位';
+  }catch(e){
+    btn.disabled=false; btn.textContent='送信失敗…もう一度';
+  }
+}
+document.getElementById('btnRank').addEventListener('click', e=>submitRank(e.currentTarget));
+
 requestAnimationFrame(loopFn);
 </script>
 </body>
