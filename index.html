@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>エメラルドの迷宮 v20 〜階ごとに顔が変わる地下迷宮〜</title>
+<title>エメラルドの迷宮 v21 〜階ごとに顔が変わる地下迷宮〜</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -1113,27 +1113,108 @@ function renderTitle(){
   ctx.fillStyle='rgba(255,150,50,'+fl+')'; ctx.fillRect(0,0,W,H);
   // ---- タイトル文字（可読性のため下地＋縁取り） ----
   ctx.textAlign='center';
-  const plate=ctx.createRadialGradient(cx,360,20,cx,360,340);
-  plate.addColorStop(0,'rgba(4,6,10,0.72)'); plate.addColorStop(1,'rgba(4,6,10,0)');
-  ctx.fillStyle=plate; ctx.fillRect(0,270,W,220);
-  ctx.save();
-  ctx.shadowColor='rgba(60,255,170,0.55)'; ctx.shadowBlur=24;
-  ctx.font='bold 54px Georgia,serif';
-  ctx.lineWidth=6; ctx.strokeStyle='#04140d'; ctx.strokeText('エメラルドの迷宮', cx, 340);
-  const tg=ctx.createLinearGradient(0,308,0,350); tg.addColorStop(0,'#f4fff8'); tg.addColorStop(1,'#7fe6b0');
-  ctx.fillStyle=tg; ctx.fillText('エメラルドの迷宮', cx, 340);
+  /* v21：タイトル画面を作り直し（題名＝緑の光＋金のふち＋1文字ずつ浮かぶ・英字の見出し・大きなボタン・あそびかたは押したら開く） */
+  const plate=ctx.createRadialGradient(cx,400,20,cx,400,380);
+  plate.addColorStop(0,'rgba(4,6,10,0.78)'); plate.addColorStop(1,'rgba(4,6,10,0)');
+  ctx.fillStyle=plate; ctx.fillRect(0,262,W,H-262);
+  titleLogo('エメラルドの迷宮', cx, 338, 68, t);
+  // 英字の小見出し（金の線と ひし形）
+  ctx.save(); ctx.globalAlpha=clamp((t-0.9)/0.5,0,1);
+  ctx.font='bold 13px Georgia,serif'; ctx.fillStyle='#e9c768';
+  { const s='EMERALD LABYRINTH', step=14; [...s].forEach((ch,i)=>ctx.fillText(ch, cx-(s.length-1)*step/2+i*step, 367)); }
+  ctx.strokeStyle='rgba(233,199,104,0.8)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(cx-262,362); ctx.lineTo(cx-136,362); ctx.moveTo(cx+136,362); ctx.lineTo(cx+262,362); ctx.stroke();
+  [-270,270].forEach(dx=>{ ctx.beginPath(); ctx.moveTo(cx+dx,357); ctx.lineTo(cx+dx+5,362); ctx.lineTo(cx+dx,367); ctx.lineTo(cx+dx-5,362); ctx.closePath(); ctx.fill(); });
+  ctx.shadowColor='rgba(0,0,0,0.9)'; ctx.shadowBlur=6;
+  ctx.fillStyle='#bff0d6'; ctx.font='bold 17px "Segoe UI"';
+  ctx.fillText('〜 地下迷宮のエメラルドを求めて 〜', cx, 393);
+  ctx.fillStyle='#c2d2c9'; ctx.font='14px "Segoe UI"';
+  ctx.fillText('戦士エリックのひとり旅。迷宮で仲間を見つけ、地下5階の宝を目指せ', cx, 415);
   ctx.restore();
-  ctx.fillStyle='#9fd8bd'; ctx.font='16px "Segoe UI"';
-  ctx.fillText('〜 地下迷宮のエメラルドを求めて 〜', cx, 372);
-  ctx.fillStyle='#8a9a92'; ctx.font='13px "Segoe UI"';
-  ctx.fillText('戦士エリックのひとり旅。迷宮で仲間を見つけ、地下5階の宝を目指せ', cx, 400);
-  btn(cx-110, 424, 220, 44, 'はじめから', ()=>{ newGame(); state='play'; SFX.play('town'); });
-  if(hasSave()) btn(cx-110, 478, 220, 44, 'つづきから', ()=>{ if(loadSave()){ state='play'; SFX.play(G.scene==='town'?'town':'dungeon'); } });
+  // 「あそびかた」を開いている間は、説明だけを出す（どこを押しても閉じる）
+  if(titleHelpOpen){ drawTitleHelpOpen(); return; }
+  // ボタン（絵は titleBtn、押せる範囲は btn の見えないボタン）
+  let by=426;
+  titleBtn(cx-140, by, 280, 50, 'はじめから', 1, t);
+  btn(cx-140, by, 280, 50, 'はじめから', ()=>{ newGame(); state='play'; SFX.play('town'); }, {inv:true});
+  by+=58;
+  if(hasSave()){
+    titleBtn(cx-140, by, 280, 42, 'つづきから', 0, t);
+    btn(cx-140, by, 280, 42, 'つづきから', ()=>{ if(loadSave()){ state='play'; SFX.play(G.scene==='town'?'town':'dungeon'); } }, {inv:true});
+    by+=50; }
+  titleBtn(cx-105, by, 210, 36, '📖 あそびかた', 2, t);
+  btn(cx-105, by, 210, 36, 'あそびかた', ()=>{ titleHelpOpen=true; }, {inv:true});
   const blink=(clock()/500|0)%2===0;
   ctx.fillStyle=blink?'#ffe27a':'#554'; ctx.font='13px "Segoe UI"'; ctx.textAlign='center';
-  ctx.fillText('クリック / Space でスタート', cx, 548);
-  drawTitleHelp();
+  ctx.fillText('クリック / Space でスタート', cx, by+56);
   drawTitleRecord();
+}
+/* v21：タイトル画面を作り直し ── 題名・ボタン・開く「あそびかた」の部品 */
+var titleHelpOpen=false;
+// 題名：1文字ずつ下から浮かび上がる。濃い緑のふち＋金の細いふち＋白から緑へのたてグラデーション＋緑の光
+function titleLogo(text,cx,y,size,t){
+  ctx.save(); ctx.textAlign='center'; ctx.textBaseline='alphabetic'; ctx.lineJoin='round';
+  ctx.font='bold '+size+'px Georgia,"Yu Mincho","Hiragino Mincho ProN",serif';
+  const chars=[...text], ws=chars.map(ch=>ctx.measureText(ch).width), total=ws.reduce((p,q)=>p+q,0);
+  const glow=0.5+0.5*Math.sin(t*1.7);
+  let x=cx-total/2;
+  chars.forEach((ch,i)=>{
+    const k=clamp((t-0.2-i*0.09)/0.7,0,1), e=1-Math.pow(1-k,3);
+    ctx.save(); ctx.translate(x+ws[i]/2, y+(1-e)*26); ctx.scale(1.3-0.3*e,1.3-0.3*e); ctx.globalAlpha=e;
+    ctx.shadowColor='rgba(60,255,170,'+(0.6+0.3*glow).toFixed(2)+')'; ctx.shadowBlur=22+12*glow;
+    ctx.strokeStyle='#02100a'; ctx.lineWidth=size*0.2; ctx.strokeText(ch,0,0);
+    ctx.shadowColor='rgba(0,0,0,0)'; ctx.shadowBlur=0;
+    ctx.strokeStyle='#e9c768'; ctx.lineWidth=size*0.085; ctx.strokeText(ch,0,0);
+    const g=ctx.createLinearGradient(0,-size*0.88,0,size*0.1);
+    g.addColorStop(0,'#ffffff'); g.addColorStop(0.35,'#d6ffe9'); g.addColorStop(0.75,'#58dca0'); g.addColorStop(1,'#1f9a68');
+    ctx.fillStyle=g; ctx.fillText(ch,0,0);
+    ctx.restore(); x+=ws[i]; });
+  // 題名のまわりの きらめき（十字の星が順にまたたく）
+  const a0=clamp((t-1.2)/0.6,0,1);
+  [[-total/2-6,-size*0.78],[total/2+8,-size*0.5],[total*0.18,-size*0.98],[-total*0.3,size*0.16]].forEach((p,i)=>{
+    const tw=Math.max(0,Math.sin(t*2.1+i*1.9)), r=(5+7*tw)*a0; if(r<0.5) return;
+    ctx.save(); ctx.translate(cx+p[0],y+p[1]); ctx.globalAlpha=0.35+0.65*tw; ctx.fillStyle='#f4fff8';
+    ctx.shadowColor='rgba(120,255,200,0.9)'; ctx.shadowBlur=10;
+    ctx.beginPath(); ctx.moveTo(0,-r); ctx.lineTo(r*0.2,-r*0.2); ctx.lineTo(r,0); ctx.lineTo(r*0.2,r*0.2);
+    ctx.lineTo(0,r); ctx.lineTo(-r*0.2,r*0.2); ctx.lineTo(-r,0); ctx.lineTo(-r*0.2,-r*0.2); ctx.closePath(); ctx.fill();
+    ctx.restore(); });
+  ctx.restore();
+}
+// タイトルのボタンの絵。kind：1＝始める（緑＋金・ふわっと光る）／0＝ふつう／2＝小さめ
+function titleBtn(x,y,w,h,label,kind,t){
+  const r=h/2;
+  ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
+  if(kind===1){
+    const pulse=0.5+0.5*Math.sin(t*3.4);
+    ctx.shadowColor='rgba(90,255,180,'+(0.5+0.45*pulse).toFixed(2)+')'; ctx.shadowBlur=14+16*pulse;
+    const g=ctx.createLinearGradient(0,y,0,y+h); g.addColorStop(0,'#58e6a8'); g.addColorStop(0.55,'#1fa56c'); g.addColorStop(1,'#0b5e3c');
+    rrect(x,y,w,h,r); ctx.fillStyle=g; ctx.fill();
+    ctx.shadowColor='rgba(0,0,0,0)'; ctx.shadowBlur=0;
+    const hl=ctx.createLinearGradient(0,y,0,y+h); hl.addColorStop(0,'rgba(255,255,255,0.42)'); hl.addColorStop(0.5,'rgba(255,255,255,0)');
+    rrect(x+3,y+3,w-6,h-6,r-3); ctx.fillStyle=hl; ctx.fill();
+    ctx.strokeStyle='#f3d57a'; ctx.lineWidth=2.5; rrect(x,y,w,h,r); ctx.stroke();
+    ctx.strokeStyle='rgba(243,213,122,'+(0.15+0.3*pulse).toFixed(2)+')'; ctx.lineWidth=3; rrect(x-6,y-6,w+12,h+12,r+6); ctx.stroke();
+    ctx.font='bold 24px "Segoe UI"';
+    ctx.strokeStyle='rgba(2,30,18,0.85)'; ctx.lineWidth=4; ctx.strokeText('▶ '+label, x+w/2, y+h/2+1);
+    ctx.fillStyle='#fffbe6'; ctx.fillText('▶ '+label, x+w/2, y+h/2+1);
+  } else {
+    rrect(x,y,w,h,r); ctx.fillStyle='rgba(8,26,20,0.88)'; ctx.fill();
+    ctx.strokeStyle=kind===2?'rgba(120,220,170,0.75)':'#e9c768'; ctx.lineWidth=kind===2?1.5:2; ctx.stroke();
+    ctx.font=kind===2?'bold 16px "Segoe UI"':'bold 20px "Segoe UI"';
+    ctx.fillStyle=kind===2?'#bff0d6':'#ffe8c0'; ctx.fillText(label, x+w/2, y+h/2+1);
+  }
+  ctx.restore();
+}
+// 開いた「あそびかた」：もとの説明の箱（文はそのまま）を画面のまん中に 1.6 倍で出す
+function drawTitleHelpOpen(){
+  const s=1.6;
+  ctx.save(); ctx.fillStyle='rgba(0,0,0,0.66)'; ctx.fillRect(0,0,W,H);
+  ctx.translate(W/2-(214*s)/2-16*s, 36-150*s); ctx.scale(s,s);
+  drawTitleHelp();
+  ctx.restore();
+  titleBtn(W/2-100, 534, 200, 40, '✕ とじる', 0, 0);
+  ctx.textAlign='center';
+  btn(0, 0, W, H, 'とじる', ()=>{ titleHelpOpen=false; }, {inv:true});
 }
 /* 榊原千唐 S1導入: 操作説明パネル（左の暗い余白に配置＝中央のキービジュアルに干渉しない） */
 function drawTitleHelp(){
@@ -1971,6 +2052,7 @@ function renderEnding(){
 function onKey(code){
   if(code==='KeyN'){ SFX.toggle(); return; }
   if(state==='title'){
+    if(titleHelpOpen){ titleHelpOpen=false; return; }   // v21：あそびかたを開いている時は、どのキーでもまず閉じる
     if(code==='Space'||code==='Enter'){ newGame(); state='play'; SFX.play('town'); }
     return;
   }
